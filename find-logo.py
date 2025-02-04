@@ -12,14 +12,24 @@ def detect_logo(image_path, logo_paths, threshold=0.7):
         threshold (float): Threshold for the matching score.
 
     Returns:
-        bool: True if a logo is detected, False otherwise.
+        tuple: (bool, str) - True if a logo is detected, False otherwise.
+               The second element returns what logo and from what file it found.
     """
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        print(f"Error: Could not read image {image_path}")
+        return False, None
+
     sift = cv2.SIFT_create()
     kp_img, des_img = sift.detectAndCompute(img, None)
 
     for logo_path in logo_paths:
         logo = cv2.imread(logo_path, cv2.IMREAD_GRAYSCALE)
+        if logo is None:
+            print(f"Error: Could not read logo {logo_path}")
+            continue
+
+        sift = cv2.SIFT_create()
         kp_logo, des_logo = sift.detectAndCompute(logo, None)
 
         bf = cv2.BFMatcher()
@@ -31,9 +41,12 @@ def detect_logo(image_path, logo_paths, threshold=0.7):
                 good_matches.append(m)
 
         if len(good_matches) > 20:  # Adjust the number of matches
-            return True
+            # Extract the logo's filename (without extension)
+            logo_filename = os.path.splitext(os.path.basename(logo_path))[0]
 
-    return False
+            return True, logo_filename
+
+    return False, None
 
 
 # Main
@@ -46,7 +59,9 @@ print(f"Logo paths: {logo_paths}")
 print(f"Image paths: {image_paths}")
 
 for image_path in image_paths:
-    if detect_logo(image_path, logo_paths):
-        print(f"Logo found in: {image_path}")
+    found, logo_name = detect_logo(image_path, logo_paths)
+    if found:
+        print(f"Logo {logo_name} found in: {image_path}")
     else:
         print(f"Logo NOT found in: {image_path}")
+
